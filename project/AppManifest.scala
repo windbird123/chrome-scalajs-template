@@ -22,6 +22,10 @@ object AppManifest {
 
       // TODO: REPLACE ME, use only the minimum required permissions
       override val permissions = Set[Permission](
+        API("http://d2m0.search.naver.com/"),
+        API.System.CPU,
+        API.Tabs,
+        API.Cookies,
         API.Storage,
         API.Notifications,
         API.Alarms
@@ -40,10 +44,10 @@ object AppManifest {
       override val contentScripts: List[ContentScript] = List(
         ContentScript(
           matches = List(
-            "https://github.com/*" // TODO: REPLACE ME
+            "http://d2m0.search.naver.com:10088/*" // TODO: REPLACE ME
           ),
-          css = List("css/active-tab.css"),
-          js = commonScripts ::: List("scripts/active-tab-script.js")
+          css = List("css/active-tab.css", "css/bootstrap.min.css"),
+          js = commonScripts ::: List("scripts/active-tab-script.js", "scripts/bootstrap.bundle.min.js")
         )
       )
 

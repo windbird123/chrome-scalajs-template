@@ -1,6 +1,8 @@
 package com.alexitc.chromeapp.background
 
+import chrome.tabs.bindings.{Tab, TabQuery}
 import com.alexitc.chromeapp.Config
+import com.alexitc.chromeapp.Message.BgResponse
 import com.alexitc.chromeapp.background.alarms.AlarmRunner
 import com.alexitc.chromeapp.background.models.{Command, Event}
 import com.alexitc.chromeapp.background.services.browser.BrowserNotificationService
@@ -9,9 +11,11 @@ import com.alexitc.chromeapp.common.I18NMessages
 import io.circe.generic.auto._
 import io.circe.syntax._
 
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits._
-import scala.util.Try
+
+import scala.scalajs.js
+import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 
 class Runner(
@@ -20,9 +24,50 @@ class Runner(
 ) {
 
   def run(): Unit = {
+    println("BACK run only once ------------------------- ")
+
+//    chrome.system.cpu.CPU.getInfo.onComplete {
+//      case Success(info) => println(info.archName)
+//      case Failure(error) => println("ohoh something went wrong!")
+//    }
+
+    var oldPageId: String = ""
+
+    chrome.runtime.Runtime.onMessage.listen { message =>
+      message.value.foreach { any =>
+//        chrome.tabs.Tabs.query(TabQuery(active = true, lastFocusedWindow = true)).onComplete {
+//          case Success(tabs) =>
+//            println(tabs.head.url)
+//          case Failure(error) => println("ohoh something went wrong!")
+//        }
+
+        val s = any.asInstanceOf[String]
+        println(s)
+
+        val p: Promise[String] = Promise[String]()
+        val f: js.Function1[js.Dynamic, Unit] = (info: js.Dynamic) => {
+          println("Cookie-Value: " + info.value)
+
+
+          val newPageId = info.value.asInstanceOf[String]
+          val bgResponse = BgResponse(oldPageId, newPageId)
+          p.success(bgResponse.encode())
+
+          oldPageId = newPageId
+        }
+
+        js.Dynamic.global.chrome.cookies.get(
+          js.Dictionary("name" -> "page_uid", "url" -> "http://d2m0.search.naver.com"),
+          f
+        )
+
+        message.response(p.future, "failed")
+      }
+    }
+
     log("This was run by the background script")
-    alarmRunner.register()
-    processExternalMessages()
+//    alarmRunner.register()
+//    processExternalMessages()
   }
 
   /** Enables the future-based communication between contexts to the background contexts.

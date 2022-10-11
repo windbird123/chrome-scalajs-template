@@ -91,6 +91,7 @@ lazy val root = (project in file("."))
     // js dependencies, adding typescript type definitions gets them a Scala facade
     Compile / npmDependencies ++= Seq(
       "sweetalert" -> "2.1.2"
+//      "@types/bootstrap" -> "5.2.5"
     ),
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "2.1.0",
@@ -100,6 +101,8 @@ lazy val root = (project in file("."))
       "io.circe" %%% "circe-core" % circe,
       "io.circe" %%% "circe-generic" % circe,
       "io.circe" %%% "circe-parser" % circe,
+      "com.raquo" %%% "laminar" % "0.14.2",
+      "com.typesafe.play" %%% "play-json" % "2.9.2",
       "org.scalatest" %%% "scalatest" % "3.2.11" % "test"
     )
   )

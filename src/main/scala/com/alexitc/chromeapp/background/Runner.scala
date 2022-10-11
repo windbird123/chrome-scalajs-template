@@ -23,6 +23,25 @@ class Runner(
     alarmRunner: AlarmRunner
 ) {
 
+  def getCookieValue(name: String, url: String): Future[String] = {
+    val p: Promise[String] = Promise[String]()
+
+    val f: js.Function1[js.Dynamic, Unit] = (info: js.Dynamic) => {
+      val pageId = info.value.asInstanceOf[String]
+      p.success(pageId)
+    }
+
+    js.Dynamic.global.chrome.cookies.get(
+      js.Dictionary("name" -> name, "url" -> url),
+      f
+    )
+    p.future
+  }
+
+  def getActiveTabUrl: Future[String] = {
+    chrome.tabs.Tabs.query(TabQuery(active = true, lastFocusedWindow = true)).map(_.head.url.get)
+  }
+
   def run(): Unit = {
     println("BACK run only once ------------------------- ")
 
@@ -32,6 +51,8 @@ class Runner(
 //    }
 
     var oldPageId: String = ""
+    var oldSessionId: String = ""
+    var oldTabUrl: String = ""
 
     chrome.runtime.Runtime.onMessage.listen { message =>
       message.value.foreach { any =>
@@ -41,27 +62,44 @@ class Runner(
 //          case Failure(error) => println("ohoh something went wrong!")
 //        }
 
-        val s = any.asInstanceOf[String]
-        println(s)
+        val pageIdFuture: Future[String] = getCookieValue("page_uid", "http://d2m0.search.naver.com")
+        val sessionIdFuture: Future[String] = getCookieValue("_naver_usersession_", "http://d2m0.search.naver.com")
 
-        val p: Promise[String] = Promise[String]()
-        val f: js.Function1[js.Dynamic, Unit] = (info: js.Dynamic) => {
-          println("Cookie-Value: " + info.value)
+//        val p: Promise[String] = Promise[String]()
+//        val f: js.Function1[js.Dynamic, Unit] = (info: js.Dynamic) => {
+//          println("Cookie-Value: " + info.value)
+//
+//
+//          val newPageId = info.value.asInstanceOf[String]
+//          val bgResponse = BgResponse(oldPageId, newPageId)
+//          p.success(bgResponse.encode())
+//
+//          oldPageId = newPageId
+//        }
+//
+//        js.Dynamic.global.chrome.cookies.get(
+//          js.Dictionary("name" -> "page_uid", "url" -> "http://d2m0.search.naver.com"),
+//          f
+//        )
 
+        val res: Future[String] = for {
+          tabUrl <- getActiveTabUrl
+          pageId <- pageIdFuture
+          sessionId <- sessionIdFuture
+          bgRes = BgResponse(
+            oldPageId,
+            newPageId = pageId,
+            oldSessionId,
+            newSessionId = sessionId,
+            oldTabUrl,
+            newTabUrl = tabUrl
+          )
+          _ <- Future { oldTabUrl = tabUrl }
+          _ <- Future { oldPageId = pageId }
+          _ <- Future { oldSessionId = sessionId }
+        } yield bgRes.encode()
 
-          val newPageId = info.value.asInstanceOf[String]
-          val bgResponse = BgResponse(oldPageId, newPageId)
-          p.success(bgResponse.encode())
-
-          oldPageId = newPageId
-        }
-
-        js.Dynamic.global.chrome.cookies.get(
-          js.Dictionary("name" -> "page_uid", "url" -> "http://d2m0.search.naver.com"),
-          f
-        )
-
-        message.response(p.future, "failed")
+        message.response(res, "failed")
       }
     }
 

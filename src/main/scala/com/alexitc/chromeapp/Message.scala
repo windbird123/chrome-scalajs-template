@@ -12,7 +12,7 @@ object Message {
     def decode(jsonString: String): BgRequest = Json.parse(jsonString).as[BgRequest]
   }
 
-  case class BgResponse(oldPageId: String, newPageId: String) {
+  case class BgResponse(oldPageId: String, newPageId: String, oldSessionId: String, newSessionId: String, oldTabUrl: String, newTabUrl: String) {
     def encode(): String = Json.toJson(this).toString()
   }
   object BgResponse {

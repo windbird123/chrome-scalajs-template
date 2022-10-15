@@ -35,7 +35,7 @@ class Runner(
 
     val callback: js.Function1[js.Object, Unit] = (x: js.Object) => {
       def parseParam(key: String, url: String): String =
-        url.split(Array('?', '&')).find(_.startsWith(s"$key=")).map(_.drop(3)).getOrElse("")
+        url.split(Array('?', '&')).find(_.startsWith(s"$key=")).map(_.drop(key.length)).getOrElse("")
 
       val bgResponse: BgResponse = BgResponse.decode(x.asInstanceOf[String])
 
@@ -145,7 +145,7 @@ class Runner(
       )
     )
 
-    val containerNode = dom.document.getElementById("_sch")
+    val containerNode = dom.document.getElementById("container")
     render(containerNode, content)
 
   }

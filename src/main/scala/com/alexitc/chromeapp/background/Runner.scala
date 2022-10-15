@@ -62,8 +62,8 @@ class Runner(
 //          case Failure(error) => println("ohoh something went wrong!")
 //        }
 
-        val pageIdFuture: Future[String] = getCookieValue("page_uid", "http://d2m0.search.naver.com")
-        val sessionIdFuture: Future[String] = getCookieValue("_naver_usersession_", "http://d2m0.search.naver.com")
+        val pageIdFuture: Future[String] = getCookieValue("page_uid", "https://search.naver.com")
+        val sessionIdFuture: Future[String] = getCookieValue("_naver_usersession_", "https://search.naver.com")
 
 //        val p: Promise[String] = Promise[String]()
 //        val f: js.Function1[js.Dynamic, Unit] = (info: js.Dynamic) => {
@@ -78,7 +78,7 @@ class Runner(
 //        }
 //
 //        js.Dynamic.global.chrome.cookies.get(
-//          js.Dictionary("name" -> "page_uid", "url" -> "http://d2m0.search.naver.com"),
+//          js.Dictionary("name" -> "page_uid", "url" -> "https://search.naver.com"),
 //          f
 //        )
 

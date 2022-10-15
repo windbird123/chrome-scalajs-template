@@ -79,7 +79,7 @@ class Runner(
     )
 
     val content = div(
-      cls := "container-fluid fixed-bottom mb-2 py-2",
+      cls := "container-fluid fixed-bottom py-1",
       div(
 //        cls := "row gx-4",
         table(

@@ -150,18 +150,18 @@ class Runner(
 
     // change <a> tag title
     def getAreaCode(scriptText: String): Option[String] = {
-      val regex = ".*goOtherCR.+'a=([a-zA-Z_0-9*.]+)&.+".r
-
-      scriptText match {
-        case regex(code) => Some(code)
-        case _ => None
-      }
+      val target = "a=([a-zA-Z_0-9*.]+)".r
+      target.findFirstIn(scriptText).map(_.drop("a=".length))
     }
 
     val aTags = dom.document.getElementsByTagName("a")
     aTags.foreach { elm =>
-      val scriptText = elm.getAttribute("onclick")
-      getAreaCode(scriptText).foreach(code => elm.setAttribute("title", code))
+      val scriptText = Option(elm.getAttribute("onclick"))
+
+      for {
+        text <- scriptText
+        code <- getAreaCode(text)
+      } elm.setAttribute("title", code)
     }
   }
 

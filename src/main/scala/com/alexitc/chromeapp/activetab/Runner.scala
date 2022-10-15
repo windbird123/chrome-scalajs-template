@@ -35,7 +35,7 @@ class Runner(
 
     val callback: js.Function1[js.Object, Unit] = (x: js.Object) => {
       def parseParam(key: String, url: String): String =
-        url.split(Array('?', '&')).find(_.startsWith(s"$key=")).map(_.drop(key.length)).getOrElse("")
+        url.split(Array('?', '&')).find(_.startsWith(s"$key=")).map(_.drop(key.length + 1)).getOrElse("")
 
       val bgResponse: BgResponse = BgResponse.decode(x.asInstanceOf[String])
 
@@ -83,7 +83,7 @@ class Runner(
       div(
 //        cls := "row gx-4",
         table(
-          cls := "table table-dark table-bordered",
+          cls := "table table-secondary table-bordered",
           thead(
             tr(th(scopeAttr := "col", ""), th(scopeAttr := "col", "Previous"), th(scopeAttr := "col", "Current"))
           ),
@@ -148,6 +148,21 @@ class Runner(
     val containerNode = dom.document.getElementById("container")
     render(containerNode, content)
 
+    // change <a> tag title
+    def getAreaCode(scriptText: String): Option[String] = {
+      val regex = ".*goOtherCR.+'a=([a-zA-Z_0-9*.]+)&.+".r
+
+      scriptText match {
+        case regex(code) => Some(code)
+        case _ => None
+      }
+    }
+
+    val aTags = dom.document.getElementsByTagName("a")
+    aTags.foreach { elm =>
+      val scriptText = elm.getAttribute("onclick")
+      getAreaCode(scriptText).foreach(code => elm.setAttribute("title", code))
+    }
   }
 
   private def injectPrivilegedScripts(scripts: Seq[String]): Future[Unit] = {

@@ -23,6 +23,7 @@ object AppManifest {
       // TODO: REPLACE ME, use only the minimum required permissions
       override val permissions = Set[Permission](
         API("https://search.naver.com/"),
+        API("https://m.search.naver.com/"),
         API.System.CPU,
         API.Tabs,
         API.Cookies,

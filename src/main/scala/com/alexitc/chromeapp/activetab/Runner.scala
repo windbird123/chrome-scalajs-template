@@ -154,15 +154,22 @@ class Runner(
       target.findFirstIn(scriptText).map(_.drop("a=".length))
     }
 
-    val aTags = dom.document.getElementsByTagName("a")
-    aTags.foreach { elm =>
-      val scriptText = Option(elm.getAttribute("onclick"))
+    // Naver AiTEMS 추천 영역은 dom loading 이 늦는 것 같다.
+    // 1초정도 delay 를 두어 완전히 로딩이 완료되었을 것 같은 시점에 a tag 를 검색해 변경한다.
+    dom.window.setTimeout(
+      () => {
+        val aTags = dom.document.getElementsByTagName("a")
+        aTags.foreach { elm =>
+          val scriptText = Option(elm.getAttribute("onclick"))
 
-      for {
-        text <- scriptText
-        code <- getAreaCode(text)
-      } elm.setAttribute("title", code)
-    }
+          for {
+            text <- scriptText
+            code <- getAreaCode(text)
+          } elm.setAttribute("title", code)
+        }
+      },
+      1000
+    )
   }
 
   private def injectPrivilegedScripts(scripts: Seq[String]): Future[Unit] = {

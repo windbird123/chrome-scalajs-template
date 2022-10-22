@@ -7,7 +7,9 @@ import com.alexitc.chromeapp.common.I18NMessages
 import com.raquo.domtypes.generic.codecs.StringAsIsCodec
 import com.raquo.laminar.api.L._
 import org.scalajs.dom
+import org.scalajs.dom.html.Script
 import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits._
+import play.api.libs.json.Json
 
 import scala.concurrent.Future
 import scala.scalajs.js
@@ -32,6 +34,8 @@ class Runner(
     val prevSmParam: Var[String] = Var("")
     val currSmParam: Var[String] = Var("")
     val isSmParamChanged: Var[Boolean] = Var(false)
+
+    var newWhereParam: String = ""
 
     val callback: js.Function1[js.Object, Unit] = (x: js.Object) => {
       def parseParam(key: String, url: String): String =
@@ -64,6 +68,9 @@ class Runner(
       isSmParamChanged.set(currSmParamValue.nonEmpty && newSmParamValue != currSmParamValue)
       prevSmParam.set(currSmParamValue)
       currSmParam.set(newSmParamValue)
+
+      // where param
+      newWhereParam = parseParam("where", newTabUrl)
     }
 
     chrome.runtime.Runtime.sendMessage(message = "{}", responseCallback = callback)
@@ -150,8 +157,12 @@ class Runner(
 
     // change <a> tag title
     def getAreaCode(scriptText: String): Option[String] = {
-      val target = "a=([a-zA-Z_0-9*.]+)".r
-      target.findFirstIn(scriptText).map(_.drop("a=".length))
+      if (scriptText.contains("goOtherCR")) {
+        val target = "a=([a-zA-Z_0-9*.]+)".r
+        target.findFirstIn(scriptText).map(_.drop("a=".length))
+      } else {
+        None
+      }
     }
 
     // Naver AiTEMS 추천 영역은 dom loading 이 늦는 것 같다.
@@ -166,6 +177,68 @@ class Runner(
             text <- scriptText
             code <- getAreaCode(text)
           } elm.setAttribute("title", code)
+        }
+      },
+      1000
+    )
+
+    //  var nx_cr_area_info = [{"n": "pwl_nop", "r": 1},{"n": "shp_tre", "r": 2},{"n": "shb_bas", "r": 3},{"n": "ink_mik", "r": 4},{"n": "rvw", "r": 5},{"n": "img", "r": 6},{"n": "loc_plc", "r": 7},{"n": "web_gen", "r": 8},{"n": "biz_nop", "r": 9}];
+    def getNxCrAreaInfo(scriptText: String): List[String] = {
+      val target = ".*nx_cr_area_info\\W+(\\[.*]);".r
+      scriptText match {
+        case target(json) =>
+          val seq = Json.parse(json) \\ "n"
+          seq.map(_.as[String]).toList
+
+        case _ => List.empty[String]
+      }
+    }
+
+    def getSectionCode(sectionList: List[String], node: dom.Element): Option[String] = {
+      val aTags = node.getElementsByTagName("a")
+
+      val childCodes: collection.Seq[String] = aTags.flatMap { elm =>
+        val scriptText = Option(elm.getAttribute("onclick"))
+
+        for {
+          text <- scriptText
+          code <- getAreaCode(text)
+        } yield code
+      }
+
+      val rep: Option[String] = childCodes.headOption
+
+      rep.flatMap { r =>
+        sectionList.find(l => r.startsWith(l))
+      }
+    }
+
+    dom.window.setTimeout(
+      () => {
+        // 통검 페이지일 경우에만 section 정보를 노출한다.
+        // Pc:nexearch, Mobile: m
+        if (newWhereParam == "nexearch" || newWhereParam == "m") {
+
+          val scriptTags = dom.document.getElementsByTagName("script").map(_.asInstanceOf[Script])
+          val scriptText: Option[Script] = scriptTags.find(_.asInstanceOf[Script].text.contains("nx_cr_area_info"))
+
+          val sectionList: List[String] = scriptText match {
+            case Some(elm) => getNxCrAreaInfo(elm.text.trim)
+            case None => List.empty[String]
+          }
+
+          val sectionTags = dom.document.getElementsByTagName("section")
+          sectionTags.foreach { elm =>
+            val sectionCode = getSectionCode(sectionList, elm).getOrElse("")
+            if (sectionCode.nonEmpty) {
+              elm.setAttribute("style", "border: 4px solid green;")
+              val sectionCodeDiv = div(h2(b(sectionCode))).ref
+              elm.insertBefore(sectionCodeDiv, elm.firstChild)
+            }
+          }
+
+          // TODO: sectionList 를 노출
+          println(sectionList)
         }
       },
       1000
